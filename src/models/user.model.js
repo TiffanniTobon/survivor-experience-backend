@@ -13,4 +13,15 @@ const findByIdNumber = async (id_number) => {
   return rows[0] || null;
 };
 
-module.exports = { findByIdNumber };
+const createUser = async ({ name, id_number, email, password, role = 'user' }) => {
+  const [result] = await db.query(
+    'INSERT INTO users (name, id_number, email, password, role) VALUES (:name, :id_number, :email, :password, :role)',
+    {
+      replacements: { name, id_number, email, password, role },
+      type: db.QueryTypes.INSERT
+    }
+  );
+  return result;
+};
+
+module.exports = { findByIdNumber, createUser };

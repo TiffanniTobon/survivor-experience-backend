@@ -1,8 +1,11 @@
 const express = require('express');         // Framework para crear el router
 const router = express.Router();            // Instancia del router de Express
-const { login } = require('../controllers/auth.controller'); // Importa el controlador de login
+const { login, register } = require('../controllers/auth.controller'); // Importa el controlador de login
 const { verifyToken } = require('../middlewares/auth.middleware');   
 const { requireRole } = require('../middlewares/role.middleware');
+
+//Ruta POST register
+router.post('/register', register);
 
 // Define el endpoint POST /auth/login
 // Cuando llegue una petición POST a /login, ejecuta la función login del controlador

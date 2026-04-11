@@ -4,10 +4,10 @@ const express = require("express");
 // Importamos CORS para permitir que el frontend (otro origen) pueda hacer peticiones al backend
 const cors = require("cors");
 
-// Importa el router de autenticación que define los endpoints de /auth
+// Importa rutas de los endpoints
 const authRoutes = require("./routes/auth.routes");
-//importa el router de clases
 const classRoutes = require("./routes/class.routes");
+const catalogRoutes = require("./routes/catalog.routes");
 
 // Creamos la instancia principal de la aplicación Express
 const app = express();
@@ -25,6 +25,7 @@ app.use("/auth", authRoutes);
 // Registra todas las rutas de clases bajo el prefijo /classes
 // Ejemplo: GET /classes, POST /classes, PUT /classes/:id, DELETE /classes/:
 app.use("/classes", classRoutes);
+app.use("/catalogs", catalogRoutes);
 
 // Ruta de prueba para verificar que el servidor está corriendo
 app.get("/", (req, res) => {

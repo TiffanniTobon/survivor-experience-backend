@@ -8,6 +8,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth.routes");
 const classRoutes = require("./routes/class.routes");
 const catalogRoutes = require("./routes/catalog.routes");
+const positionRoutes = require("./routes/position.routes");
 
 // Creamos la instancia principal de la aplicación Express
 const app = express();
@@ -22,10 +23,10 @@ app.use(express.json());
 // Esto significa que el endpoint login queda disponible en: POST /auth/login
 app.use("/auth", authRoutes);
 
-// Registra todas las rutas de clases bajo el prefijo /classes
-// Ejemplo: GET /classes, POST /classes, PUT /classes/:id, DELETE /classes/:
+//Rutas clases, catalogos, posiciones
 app.use("/classes", classRoutes);
 app.use("/catalogs", catalogRoutes);
+app.use("/positions", positionRoutes);
 
 // Ruta de prueba para verificar que el servidor está corriendo
 app.get("/", (req, res) => {

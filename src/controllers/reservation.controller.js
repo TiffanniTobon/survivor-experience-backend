@@ -28,6 +28,9 @@ const create = async (req, res) => {
         .status(409)
         .json({ message: "You already have a reservation for this class" });
     }
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ message: "Position is already taken" });
+    }
     console.error("Error creating reservation:", error);
     return res.status(500).json({ message: "Internal server error" });
   }

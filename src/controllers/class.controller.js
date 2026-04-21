@@ -49,6 +49,11 @@ const create = async (req, res) => {
       data: { id: newId },
     });
   } catch (error) {
+    if (error.message === "ROOM_OCCUPIED") {
+      return res
+        .status(409)
+        .json({ message: "Room is already occupied at that time" });
+    }
     console.error("Error creating class:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
@@ -84,6 +89,11 @@ const update = async (req, res) => {
 
     return res.status(200).json({ message: "Class updated successfully" });
   } catch (error) {
+    if (error.message === "ROOM_OCCUPIED") {
+      return res
+        .status(409)
+        .json({ message: "Room is already occupied at that time" });
+    }
     console.error("Error updating class:", error);
     return res.status(500).json({ message: "Internal server error" });
   }

@@ -1,17 +1,10 @@
-// El controller es el intermediario entre las rutas y el modelo
-// Recibe la petición (req), llama al modelo, y devuelve la respuesta (res)
 const classModel = require("../models/class.model");
 
 // ─── GET ALL ─────────────────────────────────────────────────────────────────
-// Maneja: GET /classes o GET /classes?date=2024-10-23
 const getAll = async (req, res) => {
   try {
-    // req.query contiene los parámetros que vienen en la URL después del ?
-    // Ejemplo: /classes?date=2024-10-23 → req.query.date = "2024-10-23"
     const { date } = req.query;
-
     const classes = await classModel.getAll(date);
-
     return res.status(200).json({
       message: "Classes retrieved successfully",
       data: classes,
@@ -23,30 +16,44 @@ const getAll = async (req, res) => {
 };
 
 // ─── CREATE ───────────────────────────────────────────────────────────────────
-// Maneja: POST /classes
-// Solo admin puede llegar aquí (el middleware lo garantiza en las rutas)
 const create = async (req, res) => {
   try {
-    // req.body contiene los datos que el admin envía en el body de la petición
-    const { name, instructor, room_id, date, start_time, end_time } = req.body;
+    // Ahora recibimos class_type_id e instructor_id en vez de name e instructor
+    const {
+      class_type_id,
+      instructor_id,
+      room_id,
+      date,
+      start_time,
+      end_time,
+    } = req.body;
 
-    // Validamos que todos los campos obligatorios lleguen
-    if (!name || !instructor || !room_id || !date || !start_time || !end_time) {
+    if (
+      !class_type_id ||
+      !instructor_id ||
+      !room_id ||
+      !date ||
+      !start_time ||
+      !end_time
+    ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     const newId = await classModel.create({
-      name,
-      instructor,
+      class_type_id,
+      instructor_id,
       room_id,
       date,
       start_time,
       end_time,
     });
 
+    // Traemos la clase recién creada con su nombre e instructor completos
+    const newClass = await classModel.getById(newId);
+
     return res.status(201).json({
       message: "Class created successfully",
-      data: { id: newId },
+      data: newClass,
     });
   } catch (error) {
     if (error.message === "ROOM_OCCUPIED") {
@@ -60,27 +67,38 @@ const create = async (req, res) => {
 };
 
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
-// Maneja: PUT /classes/:id
-// req.params.id contiene el id que viene en la URL: /classes/5 → id = "5"
 const update = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Primero verificamos que la clase exista antes de intentar editarla
     const existing = await classModel.getById(id);
     if (!existing) {
       return res.status(404).json({ message: "Class not found" });
     }
 
-    const { name, instructor, room_id, date, start_time, end_time } = req.body;
+    const {
+      class_type_id,
+      instructor_id,
+      room_id,
+      date,
+      start_time,
+      end_time,
+    } = req.body;
 
-    if (!name || !instructor || !room_id || !date || !start_time || !end_time) {
+    if (
+      !class_type_id ||
+      !instructor_id ||
+      !room_id ||
+      !date ||
+      !start_time ||
+      !end_time
+    ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     await classModel.update(id, {
-      name,
-      instructor,
+      class_type_id,
+      instructor_id,
       room_id,
       date,
       start_time,
@@ -100,19 +118,16 @@ const update = async (req, res) => {
 };
 
 // ─── DELETE ───────────────────────────────────────────────────────────────────
-// Maneja: DELETE /classes/:id
 const remove = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verificamos que exista antes de eliminar
     const existing = await classModel.getById(id);
     if (!existing) {
       return res.status(404).json({ message: "Class not found" });
     }
 
     await classModel.remove(id);
-
     return res.status(200).json({ message: "Class deleted successfully" });
   } catch (error) {
     console.error("Error deleting class:", error);

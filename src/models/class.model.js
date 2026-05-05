@@ -1,34 +1,62 @@
 const { QueryTypes } = require("sequelize");
 const db = require("../config/database");
 
-// getAll — trae todas las clases, opcionalmente filtradas por semana
+// getAll — trae todas las clases con JOIN a class_types e instructors
 const getAll = async (date) => {
+  const baseQuery = `
+    SELECT 
+      c.id,
+      ct.name AS name,
+      i.name AS instructor,
+      c.room_id,
+      c.date,
+      c.start_time,
+      c.end_time,
+      c.created_at,
+      c.class_type_id,
+      c.instructor_id
+    FROM classes c
+    JOIN class_types ct ON ct.id = c.class_type_id
+    JOIN instructors i ON i.id = c.instructor_id
+  `;
+
   if (date) {
     return await db.query(
-      `SELECT * FROM classes 
-       WHERE date >= :date 
-       AND date < DATE_ADD(:date, INTERVAL 7 DAY)
-       ORDER BY date, start_time`,
+      baseQuery +
+        `WHERE c.date >= :date AND c.date < DATE_ADD(:date, INTERVAL 7 DAY)
+       ORDER BY c.date, c.start_time`,
       { replacements: { date }, type: QueryTypes.SELECT },
     );
   }
-  return await db.query("SELECT * FROM classes ORDER BY date, start_time", {
+  return await db.query(baseQuery + `ORDER BY c.date, c.start_time`, {
     type: QueryTypes.SELECT,
   });
 };
 
-// getById — busca una clase por id
+// getById — busca una clase por id con JOIN
 const getById = async (id) => {
-  const rows = await db.query("SELECT * FROM classes WHERE id = :id", {
-    replacements: { id },
-    type: QueryTypes.SELECT,
-  });
+  const rows = await db.query(
+    `SELECT 
+      c.id,
+      ct.name AS name,
+      i.name AS instructor,
+      c.room_id,
+      c.date,
+      c.start_time,
+      c.end_time,
+      c.created_at,
+      c.class_type_id,
+      c.instructor_id
+     FROM classes c
+     JOIN class_types ct ON ct.id = c.class_type_id
+     JOIN instructors i ON i.id = c.instructor_id
+     WHERE c.id = :id`,
+    { replacements: { id }, type: QueryTypes.SELECT },
+  );
   return rows[0];
 };
 
-// checkRoomAvailability — verifica que el salón no tenga otra clase
-// en el mismo día con horario traslapado
-// excludeId se usa en el update para excluir la clase que se está editando
+// checkRoomAvailability — verifica que el salón no tenga otra clase en ese horario
 const checkRoomAvailability = async (
   room_id,
   date,
@@ -41,9 +69,7 @@ const checkRoomAvailability = async (
      WHERE room_id = :room_id 
      AND date = :date
      AND id != :excludeId
-     AND (
-       (start_time < :end_time AND end_time > :start_time)
-     )`,
+     AND (start_time < :end_time AND end_time > :start_time)`,
     {
       replacements: {
         room_id,
@@ -55,32 +81,39 @@ const checkRoomAvailability = async (
       type: QueryTypes.SELECT,
     },
   );
-  return rows.length > 0; // true = salón ocupado
+  return rows.length > 0;
 };
 
-// create — inserta una nueva clase
+// create — inserta una nueva clase con class_type_id e instructor_id
 const create = async ({
-  name,
-  instructor,
+  class_type_id,
+  instructor_id,
   room_id,
   date,
   start_time,
   end_time,
 }) => {
-  // Verificar disponibilidad del salón
   const isOccupied = await checkRoomAvailability(
     room_id,
     date,
     start_time,
     end_time,
   );
-  if (isOccupied) {
-    throw new Error("ROOM_OCCUPIED");
-  }
+  if (isOccupied) throw new Error("ROOM_OCCUPIED");
 
   const [result] = await db.query(
-    "INSERT INTO classes (name, instructor, room_id, date, start_time, end_time) VALUES (:name, :instructor, :room_id, :date, :start_time, :end_time)",
-    { replacements: { name, instructor, room_id, date, start_time, end_time } },
+    `INSERT INTO classes (class_type_id, instructor_id, room_id, date, start_time, end_time) 
+     VALUES (:class_type_id, :instructor_id, :room_id, :date, :start_time, :end_time)`,
+    {
+      replacements: {
+        class_type_id,
+        instructor_id,
+        room_id,
+        date,
+        start_time,
+        end_time,
+      },
+    },
   );
   return result;
 };
@@ -88,9 +121,8 @@ const create = async ({
 // update — actualiza una clase existente
 const update = async (
   id,
-  { name, instructor, room_id, date, start_time, end_time },
+  { class_type_id, instructor_id, room_id, date, start_time, end_time },
 ) => {
-  // Verificar disponibilidad del salón excluyendo la clase actual
   const isOccupied = await checkRoomAvailability(
     room_id,
     date,
@@ -98,16 +130,17 @@ const update = async (
     end_time,
     id,
   );
-  if (isOccupied) {
-    throw new Error("ROOM_OCCUPIED");
-  }
+  if (isOccupied) throw new Error("ROOM_OCCUPIED");
 
   const [, meta] = await db.query(
-    "UPDATE classes SET name = :name, instructor = :instructor, room_id = :room_id, date = :date, start_time = :start_time, end_time = :end_time WHERE id = :id",
+    `UPDATE classes 
+     SET class_type_id = :class_type_id, instructor_id = :instructor_id, 
+         room_id = :room_id, date = :date, start_time = :start_time, end_time = :end_time 
+     WHERE id = :id`,
     {
       replacements: {
-        name,
-        instructor,
+        class_type_id,
+        instructor_id,
         room_id,
         date,
         start_time,

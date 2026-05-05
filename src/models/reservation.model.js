@@ -63,15 +63,17 @@ const getMyReservations = async (userId) => {
        r.status,
        r.created_at,
        c.id AS class_id,
-       c.name AS class_name,
+       ct.name AS class_name,
+       i.name AS instructor,
        c.date,
        c.start_time,
        c.end_time,
-       c.instructor,
        p.number AS position_number,
        rm.name AS room_name
      FROM reservations r
      JOIN classes c ON c.id = r.class_id
+     JOIN class_types ct ON ct.id = c.class_type_id
+     JOIN instructors i ON i.id = c.instructor_id
      JOIN positions p ON p.id = r.position_id
      JOIN rooms rm ON rm.id = c.room_id
      WHERE r.user_id = :userId

@@ -183,6 +183,89 @@ src/
 ## Ramas del repositorio
 
 ```
+## Producción
+
+La API está desplegada en Railway y accesible públicamente en:
+https://survivor-experience-backend-production.up.railway.app
+
+---
+
+## Credenciales de prueba
+
+| Rol   | Número de identificación | Contraseña |
+| ----- | ------------------------ | ---------- |
+| Admin | 1234567890               | 1234       |
+
+---
+
+## Script SQL — Creación de tablas
+
+Ejecuta este script en MySQL antes de correr el proyecto en local:
+
+```sql
+CREATE DATABASE survivor_experience;
+USE survivor_experience;
+
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  id_number VARCHAR(20) NOT NULL UNIQUE,
+  email VARCHAR(100) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'user') DEFAULT 'user',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rooms (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  capacity INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE class_types (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE instructors (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE classes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  class_type_id INT NOT NULL,
+  instructor_id INT NOT NULL,
+  room_id INT NOT NULL,
+  date DATE NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_classes_class_type FOREIGN KEY (class_type_id) REFERENCES class_types(id),
+  CONSTRAINT fk_classes_instructor FOREIGN KEY (instructor_id) REFERENCES instructors(id),
+  CONSTRAINT fk_classes_room FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
+CREATE TABLE positions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  room_id INT NOT NULL,
+  number INT NOT NULL,
+  CONSTRAINT fk_positions_room FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
+CREATE TABLE reservations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  class_id INT NOT NULL,
+  position_id INT NOT NULL,
+  status ENUM('active', 'cancelled') DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_reservations_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_reservations_class FOREIGN KEY (class_id) REFERENCES classes(id),
+  CONSTRAINT fk_reservations_position FOREIGN KEY (position_id) REFERENCES positions(id)
+);
+```
 main        → código estable aprobado
 develop     → integración de features
 feature/*   → desarrollo de funcionalidades específicas

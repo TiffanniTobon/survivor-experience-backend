@@ -1,6 +1,16 @@
 // Cargamos las variables de entorno desde el archivo .env
 require('dotenv').config()
 
+const { validateEnv } = require('./config/validateEnv')
+
+// Falla rápido si falta configuración obligatoria o es insegura
+try {
+  validateEnv()
+} catch (error) {
+  console.error('Configuración inválida:', error.message)
+  process.exit(1)
+}
+
 // Importamos la app de Express y la conexión a la base de datos
 const app = require('./app')
 const sequelize = require('./config/database')

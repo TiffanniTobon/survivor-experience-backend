@@ -2,16 +2,11 @@ const reservationModel = require("../models/reservation.model");
 
 // POST /reservations
 // El usuario reserva una posición en una clase
+// class_id y position_id ya vienen validados por validateBody(reservationSchema)
 const create = async (req, res) => {
   try {
     const userId = req.user.id; // viene del token JWT verificado
     const { class_id, position_id } = req.body;
-
-    if (!class_id || !position_id) {
-      return res
-        .status(400)
-        .json({ message: "class_id and position_id are required" });
-    }
 
     await reservationModel.create(userId, class_id, position_id);
 

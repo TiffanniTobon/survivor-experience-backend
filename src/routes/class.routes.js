@@ -9,6 +9,8 @@ const classController = require("../controllers/class.controller");
 // requireRole → verifica que el usuario tenga el rol correcto
 const { verifyToken } = require("../middlewares/auth.middleware");
 const { requireRole } = require("../middlewares/role.middleware");
+const { validateBody } = require("../middlewares/validate.middleware");
+const { classSchema } = require("../validators/class.validator");
 
 // ─── RUTAS PÚBLICAS (solo requieren estar autenticado) ────────────────────────
 // GET /classes        → trae todas las clases
@@ -23,10 +25,22 @@ router.get("/", verifyToken, classController.getAll);
 // Si alguno falla, la petición se rechaza antes de llegar al controller
 
 // POST /classes → crear una clase nueva
-router.post("/", verifyToken, requireRole("admin"), classController.create);
+router.post(
+  "/",
+  verifyToken,
+  requireRole("admin"),
+  validateBody(classSchema),
+  classController.create,
+);
 
 // PUT /classes/:id → editar una clase existente
-router.put("/:id", verifyToken, requireRole("admin"), classController.update);
+router.put(
+  "/:id",
+  verifyToken,
+  requireRole("admin"),
+  validateBody(classSchema),
+  classController.update,
+);
 
 // DELETE /classes/:id → eliminar una clase
 router.delete(

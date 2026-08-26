@@ -16,9 +16,9 @@ const getAll = async (req, res) => {
 };
 
 // ─── CREATE ───────────────────────────────────────────────────────────────────
+// Los campos ya vienen validados (tipos, formato de fecha/hora) por validateBody(classSchema)
 const create = async (req, res) => {
   try {
-    // Ahora recibimos class_type_id e instructor_id en vez de name e instructor
     const {
       class_type_id,
       instructor_id,
@@ -27,17 +27,6 @@ const create = async (req, res) => {
       start_time,
       end_time,
     } = req.body;
-
-    if (
-      !class_type_id ||
-      !instructor_id ||
-      !room_id ||
-      !date ||
-      !start_time ||
-      !end_time
-    ) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
 
     const newId = await classModel.create({
       class_type_id,
@@ -84,17 +73,6 @@ const update = async (req, res) => {
       start_time,
       end_time,
     } = req.body;
-
-    if (
-      !class_type_id ||
-      !instructor_id ||
-      !room_id ||
-      !date ||
-      !start_time ||
-      !end_time
-    ) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
 
     await classModel.update(id, {
       class_type_id,

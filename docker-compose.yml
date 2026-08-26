@@ -1,0 +1,41 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+      # NOTA: el esquema (CREATE TABLE) no existe todavía como script versionado
+      # en este repo (ver hallazgo C5 de la auditoría). Hasta que existan
+      # migraciones, hay que crear las tablas manualmente la primera vez
+      # (ver README) o colocar aquí un .sql de inicialización.
+      # - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: ${PORT:-3000}
+      DB_HOST: db
+      DB_NAME: ${DB_NAME}
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+    ports:
+      - "${PORT:-3000}:3000"
+
+volumes:
+  db-data:

@@ -1,25 +1,26 @@
 const { findByIdNumber, createUser } = require('../models/user.model');
 const { comparePassword, generateToken, hashPassword } = require('../services/auth.service');
+const { registerFailedAttempt, clearFailedAttempts } = require('../middlewares/accountLockout.middleware');
 
 // Maneja la petición POST /auth/login
+// id_number y password ya vienen validados por validateBody(loginSchema)
 const login = async (req, res) => {
   try {
     const { id_number, password } = req.body;
 
-    if (!id_number || !password) {
-      return res.status(400).json({ message: 'Identificación y contraseña son requeridas' });
-    }
-
     const user = await findByIdNumber(id_number);
     if (!user) {
+      registerFailedAttempt(id_number);
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
     const isValid = await comparePassword(password, user.password);
     if (!isValid) {
+      registerFailedAttempt(id_number);
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
+    clearFailedAttempts(id_number);
     const token = generateToken(user);
 
     return res.status(200).json({
@@ -41,13 +42,10 @@ const login = async (req, res) => {
 };
 
 // Maneja la petición POST /auth/register
+// Los campos ya vienen validados (formato de email, longitud de password) por validateBody(registerSchema)
 const register = async (req, res) => {
   try {
     const { name, id_number, email, password } = req.body;
-
-    if (!name || !id_number || !email || !password) {
-      return res.status(400).json({ message: 'Todos los campos son requeridos' });
-    }
 
     const existing = await findByIdNumber(id_number);
     if (existing) {

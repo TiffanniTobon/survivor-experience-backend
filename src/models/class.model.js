@@ -57,19 +57,24 @@ const getById = async (id) => {
 };
 
 // checkRoomAvailability — verifica que el salón no tenga otra clase en ese horario
+// dentro de una transacción, bloqueando las filas en conflicto (FOR UPDATE) para
+// evitar que dos peticiones concurrentes pasen ambas la verificación antes de
+// que la primera inserte (condición de carrera → doble reserva del mismo salón).
 const checkRoomAvailability = async (
   room_id,
   date,
   start_time,
   end_time,
+  transaction,
   excludeId = null,
 ) => {
   const rows = await db.query(
-    `SELECT id FROM classes 
-     WHERE room_id = :room_id 
+    `SELECT id FROM classes
+     WHERE room_id = :room_id
      AND date = :date
      AND id != :excludeId
-     AND (start_time < :end_time AND end_time > :start_time)`,
+     AND (start_time < :end_time AND end_time > :start_time)
+     FOR UPDATE`,
     {
       replacements: {
         room_id,
@@ -79,6 +84,7 @@ const checkRoomAvailability = async (
         excludeId: excludeId || 0,
       },
       type: QueryTypes.SELECT,
+      transaction,
     },
   );
   return rows.length > 0;
@@ -93,29 +99,33 @@ const create = async ({
   start_time,
   end_time,
 }) => {
-  const isOccupied = await checkRoomAvailability(
-    room_id,
-    date,
-    start_time,
-    end_time,
-  );
-  if (isOccupied) throw new Error("ROOM_OCCUPIED");
+  return db.transaction(async (t) => {
+    const isOccupied = await checkRoomAvailability(
+      room_id,
+      date,
+      start_time,
+      end_time,
+      t,
+    );
+    if (isOccupied) throw new Error("ROOM_OCCUPIED");
 
-  const [result] = await db.query(
-    `INSERT INTO classes (class_type_id, instructor_id, room_id, date, start_time, end_time) 
-     VALUES (:class_type_id, :instructor_id, :room_id, :date, :start_time, :end_time)`,
-    {
-      replacements: {
-        class_type_id,
-        instructor_id,
-        room_id,
-        date,
-        start_time,
-        end_time,
+    const [result] = await db.query(
+      `INSERT INTO classes (class_type_id, instructor_id, room_id, date, start_time, end_time)
+       VALUES (:class_type_id, :instructor_id, :room_id, :date, :start_time, :end_time)`,
+      {
+        replacements: {
+          class_type_id,
+          instructor_id,
+          room_id,
+          date,
+          start_time,
+          end_time,
+        },
+        transaction: t,
       },
-    },
-  );
-  return result;
+    );
+    return result;
+  });
 };
 
 // update — actualiza una clase existente
@@ -123,33 +133,37 @@ const update = async (
   id,
   { class_type_id, instructor_id, room_id, date, start_time, end_time },
 ) => {
-  const isOccupied = await checkRoomAvailability(
-    room_id,
-    date,
-    start_time,
-    end_time,
-    id,
-  );
-  if (isOccupied) throw new Error("ROOM_OCCUPIED");
+  return db.transaction(async (t) => {
+    const isOccupied = await checkRoomAvailability(
+      room_id,
+      date,
+      start_time,
+      end_time,
+      t,
+      id,
+    );
+    if (isOccupied) throw new Error("ROOM_OCCUPIED");
 
-  const [, meta] = await db.query(
-    `UPDATE classes 
-     SET class_type_id = :class_type_id, instructor_id = :instructor_id, 
-         room_id = :room_id, date = :date, start_time = :start_time, end_time = :end_time 
-     WHERE id = :id`,
-    {
-      replacements: {
-        class_type_id,
-        instructor_id,
-        room_id,
-        date,
-        start_time,
-        end_time,
-        id,
+    const [, meta] = await db.query(
+      `UPDATE classes
+       SET class_type_id = :class_type_id, instructor_id = :instructor_id,
+           room_id = :room_id, date = :date, start_time = :start_time, end_time = :end_time
+       WHERE id = :id`,
+      {
+        replacements: {
+          class_type_id,
+          instructor_id,
+          room_id,
+          date,
+          start_time,
+          end_time,
+          id,
+        },
+        transaction: t,
       },
-    },
-  );
-  return meta;
+    );
+    return meta;
+  });
 };
 
 // remove — elimina una clase

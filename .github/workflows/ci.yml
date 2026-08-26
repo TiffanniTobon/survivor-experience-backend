@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for syntax errors
+        run: find src -name "*.js" -exec node --check {} \;
+
+      - name: Audit dependencies (high/critical only)
+        run: npm audit --audit-level=high
+
+      # TODO: reemplazar por "npm test" en cuanto exista una suite de tests
+      # (ver hallazgo C5 de la auditoría — 0% de cobertura hoy).

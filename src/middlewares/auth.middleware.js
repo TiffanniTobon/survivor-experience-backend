@@ -14,7 +14,7 @@ const verifyToken = (req, res, next) => {
 
   try {
     // Verifica y decodifica el token con la clave secreta
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     req.user = decoded; // Adjunta los datos del usuario a la petición
     next();             // Permite continuar al controlador
   } catch (error) {

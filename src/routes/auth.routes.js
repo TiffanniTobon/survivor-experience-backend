@@ -1,15 +1,18 @@
 const express = require('express');         // Framework para crear el router
 const router = express.Router();            // Instancia del router de Express
 const { login, register } = require('../controllers/auth.controller'); // Importa el controlador de login
-const { verifyToken } = require('../middlewares/auth.middleware');   
+const { verifyToken } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
+const { checkLocked } = require('../middlewares/accountLockout.middleware');
+const { validateBody } = require('../middlewares/validate.middleware');
+const { registerSchema, loginSchema } = require('../validators/auth.validator');
 
 //Ruta POST register
-router.post('/register', register);
+router.post('/register', validateBody(registerSchema), register);
 
 // Define el endpoint POST /auth/login
 // Cuando llegue una petición POST a /login, ejecuta la función login del controlador
-router.post('/login', login);
+router.post('/login', validateBody(loginSchema), checkLocked, login);
 
 // Ruta protegida de prueba — solo accesible con token válido y rol admin
 router.get('/profile', verifyToken, requireRole('admin'), (req, res) => {
